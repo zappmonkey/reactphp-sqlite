@@ -6,8 +6,7 @@ use Clue\React\SQLite\Result;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$loop = React\EventLoop\Factory::create();
-$factory = new Factory($loop);
+$factory = new Factory();
 
 $search = isset($argv[1]) ? $argv[1] : 'foo';
 $db = $factory->openLazy('test.db');
@@ -20,5 +19,3 @@ $db->query('SELECT * FROM foo WHERE bar LIKE ?', ['%' . $search . '%'])->then(fu
     }
 }, 'printf');
 $db->quit();
-
-$loop->run();

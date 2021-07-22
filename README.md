@@ -64,8 +64,7 @@ existing SQLite database file (or automatically create it on first run) and then
 `INSERT` a new record to the database:
 
 ```php
-$loop = React\EventLoop\Factory::create();
-$factory = new Clue\React\SQLite\Factory($loop);
+$factory = new Clue\React\SQLite\Factory();
 
 $db = $factory->openLazy('users.db');
 $db->exec('CREATE TABLE IF NOT EXISTS foo (id INTEGER PRIMARY KEY AUTOINCREMENT, bar STRING)');
@@ -78,8 +77,6 @@ $db->query('INSERT INTO foo (bar) VALUES (?)', [$name])->then(
 );
 
 $db->quit();
-
-$loop->run();
 ```
 
 See also the [examples](examples).
@@ -89,12 +86,16 @@ See also the [examples](examples).
 ### Factory
 
 The `Factory` is responsible for opening your [`DatabaseInterface`](#databaseinterface) instance.
-It also registers everything with the main [`EventLoop`](https://github.com/reactphp/event-loop#usage).
 
 ```php
-$loop = React\EventLoop\Factory::create();
-$factory = new Clue\React\SQLite\Factory($loop);
+$factory = new Clue\React\SQLite\Factory();
 ```
+
+This class takes an optional `LoopInterface|null $loop` parameter that can be used to
+pass the event loop instance to use for this object. You can use a `null` value
+here in order to use the [default loop](https://github.com/reactphp/event-loop#loop).
+This value SHOULD NOT be given unless you're sure you want to explicitly use a
+given event loop instance.
 
 #### open()
 

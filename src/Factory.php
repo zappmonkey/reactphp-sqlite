@@ -5,30 +5,37 @@ namespace Clue\React\SQLite;
 use Clue\React\SQLite\Io\LazyDatabase;
 use Clue\React\SQLite\Io\ProcessIoDatabase;
 use React\ChildProcess\Process;
+use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
 use React\Stream\DuplexResourceStream;
 
 class Factory
 {
+    /** @var LoopInterface */
     private $loop;
+
     private $bin = PHP_BINARY;
     private $useSocket;
 
     /**
      * The `Factory` is responsible for opening your [`DatabaseInterface`](#databaseinterface) instance.
-     * It also registers everything with the main [`EventLoop`](https://github.com/reactphp/event-loop#usage).
      *
      * ```php
-     * $loop = \React\EventLoop\Factory::create();
-     * $factory = new Factory($loop);
+     * $factory = new Clue\React\SQLite\Factory();
      * ```
      *
-     * @param LoopInterface $loop
+     * This class takes an optional `LoopInterface|null $loop` parameter that can be used to
+     * pass the event loop instance to use for this object. You can use a `null` value
+     * here in order to use the [default loop](https://github.com/reactphp/event-loop#loop).
+     * This value SHOULD NOT be given unless you're sure you want to explicitly use a
+     * given event loop instance.
+     *
+     * @param ?LoopInterface $loop
      */
-    public function __construct(LoopInterface $loop)
+    public function __construct(LoopInterface $loop = null)
     {
-        $this->loop = $loop;
+        $this->loop = $loop ?: Loop::get();
 
         // use socket I/O for Windows only, use faster process pipes everywhere else
         $this->useSocket = DIRECTORY_SEPARATOR === '\\';

@@ -5,8 +5,7 @@ use Clue\React\SQLite\Result;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$loop = React\EventLoop\Factory::create();
-$factory = new Factory($loop);
+$factory = new Factory();
 
 $n = isset($argv[1]) ? $argv[1] : 1;
 $db = $factory->openLazy('test.db');
@@ -21,5 +20,3 @@ for ($i = 0; $i < $n; ++$i) {
 }
 
 $db->quit();
-
-$loop->run();
