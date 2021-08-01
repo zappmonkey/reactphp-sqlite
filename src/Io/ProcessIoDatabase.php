@@ -33,7 +33,7 @@ class ProcessIoDatabase extends EventEmitter implements DatabaseInterface
     {
         $this->process = $process;
 
-        $in = new Decoder($process->stdout, true, 512, 0, 16 * 1024 * 1024);
+        $in = new Decoder($process->stdout, true, 512, 0, 1024 * 1024 * 1024);
         $in->on('data', function ($data) use ($in) {
             if (!isset($data['id']) || !isset($this->pending[$data['id']])) {
                 $this->emit('error', array(new \RuntimeException('Invalid message received')));
