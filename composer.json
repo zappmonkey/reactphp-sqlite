@@ -1,5 +1,5 @@
 {
-    "name": "zappmonkey/reactphp-sqlite",
+    "name": "clue/reactphp-sqlite",
     "description": "Async SQLite database, lightweight non-blocking process wrapper around file-based database extension (ext-sqlite3), built on top of ReactPHP.",
     "keywords": ["SQLite", "database", "non-blocking", "async", "ReactPHP"],
     "homepage": "https://github.com/clue/reactphp-sqlite",
