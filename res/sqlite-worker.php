@@ -90,6 +90,11 @@ $in->on('data', function ($data) use (&$db, $in, $out) {
                 'id' => $data->id,
                 'error' => array('message' => $e->getMessage())
             ));
+        } catch (Error $e) {
+            $out->write(array(
+                'id' => $data->id,
+                'error' => array('message' => $e->getMessage())
+            ));
         }
     } elseif ($data->method === 'open' && \count($data->params) === 2 && \is_string($data->params[0]) && \is_int($data->params[1])) {
         // open database with two parameters: $filename, $flags
@@ -104,6 +109,11 @@ $in->on('data', function ($data) use (&$db, $in, $out) {
                 'result' => true
             ));
         } catch (Exception $e) {
+            $out->write(array(
+                'id' => $data->id,
+                'error' => array('message' => $e->getMessage())
+            ));
+        } catch (Error $e) {
             $out->write(array(
                 'id' => $data->id,
                 'error' => array('message' => $e->getMessage())
