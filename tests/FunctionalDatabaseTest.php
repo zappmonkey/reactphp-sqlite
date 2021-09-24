@@ -138,6 +138,29 @@ class FunctionalDatabaseTest extends TestCase
      * @dataProvider provideSocketFlags
      * @param bool $flag
      */
+    public function testOpenInvalidPathWithNullByteRejects($flag)
+    {
+        $loop = \React\EventLoop\Factory::create();
+        $factory = new Factory($loop);
+
+        $ref = new \ReflectionProperty($factory, 'useSocket');
+        $ref->setAccessible(true);
+        $ref->setValue($factory, $flag);
+
+        $promise = $factory->open("test\0.db");
+
+        $promise->then(
+            null,
+            $this->expectCallableOnceWith($this->isInstanceOf('RuntimeException'))
+        );
+
+        $loop->run();
+    }
+
+    /**
+     * @dataProvider provideSocketFlags
+     * @param bool $flag
+     */
     public function testOpenInvalidFlagsRejects($flag)
     {
         $loop = \React\EventLoop\Factory::create();
