@@ -25,7 +25,7 @@ so you can query your data without blocking your main application.
   and does not get in your way.
   Future or custom commands and events require no changes to be supported.
 * **Good test coverage** -
-  Comes with an automated tests suite and is regularly tested against actual SQLite databases in the wild.
+  Comes with an automated test suite and is regularly tested against actual SQLite databases in the wild.
 
 **Table of contents**
 
@@ -64,6 +64,10 @@ existing SQLite database file (or automatically create it on first run) and then
 `INSERT` a new record to the database:
 
 ```php
+<?php
+
+require __DIR__ . '/vendor/autoload.php';
+
 $factory = new Clue\React\SQLite\Factory();
 
 $db = $factory->openLazy('users.db');
@@ -164,11 +168,11 @@ the underlying database is ready. Additionally, it will only keep this
 underlying database in an "idle" state for 60s by default and will
 automatically end the underlying database when it is no longer needed.
 
-From a consumer side this means that you can start sending queries to the
+From a consumer side, this means that you can start sending queries to the
 database right away while the underlying database process may still be
 outstanding. Because creating this underlying process may take some
-time, it will enqueue all oustanding commands and will ensure that all
-commands will be executed in correct order once the database is ready.
+time, it will enqueue all outstanding commands and will ensure that all
+commands will be executed in the correct order once the database is ready.
 In other words, this "virtual" database behaves just like a "real"
 database as described in the `DatabaseInterface` and frees you from
 having to deal with its async resolution.
@@ -213,7 +217,7 @@ $db = $factory->openLazy('users.db', SQLITE3_OPEN_READONLY);
 By default, this method will keep "idle" connection open for 60s and will
 then end the underlying connection. The next request after an "idle"
 connection ended will automatically create a new underlying connection.
-This ensure you always get a "fresh" connection and as such should not be
+This ensures you always get a "fresh" connection and as such should not be
 confused with a "keepalive" or "heartbeat" mechanism, as this will not
 actively try to probe the connection. You can explicitly pass a custom
 idle timeout value in seconds (or use a negative number to not apply a
@@ -355,7 +359,7 @@ The `close(): void` method can be used to
 force-close the connection.
 
 Unlike the `quit()` method, this method will immediately force-close the
-connection and reject all oustanding commands.
+connection and reject all outstanding commands.
 
 ```php
 $db->close();
@@ -400,7 +404,7 @@ See also the [`close()`](#close) method.
 
 ## Install
 
-The recommended way to install this library is [through Composer](https://getcomposer.org).
+The recommended way to install this library is [through Composer](https://getcomposer.org/).
 [New to Composer?](https://getcomposer.org/doc/00-intro.md)
 
 This project follows [SemVer](https://semver.org/).
@@ -427,7 +431,7 @@ $ sudo apt install php-sqlite3
 ## Tests
 
 To run the test suite, you first need to clone this repo and then install all
-dependencies [through Composer](https://getcomposer.org):
+dependencies [through Composer](https://getcomposer.org/):
 
 ```bash
 $ composer install
@@ -436,7 +440,7 @@ $ composer install
 To run the test suite, go to the project root and run:
 
 ```bash
-$ php vendor/bin/phpunit
+$ vendor/bin/phpunit
 ```
 
 ## License
