@@ -1,5 +1,25 @@
 # Changelog
 
+
+## 1.2.0 (2021-10-04)
+
+*   Feature: Simplify usage by supporting new [default loop](https://reactphp.org/event-loop/#loop).
+    (#39 by @clue and #44 by @SimonFrings)
+
+    ```php
+    // old (still supported)
+    $factory = new Clue\React\SQLite\Factory($loop);
+
+    // new (using default loop)
+    $factory = new Clue\React\SQLite\Factory();
+    ```
+
+*   Feature: Reject null byte in path to SQLite database file.
+    (#42 by @SimonFrings)
+
+*   Maintenance: Improve documentation and examples.
+    (#38 by @PaulRotmann and #43 by @SimonFrings)
+
 ## 1.1.0 (2020-12-15)
 
 *   Improve test suite and add `.gitattributes` to exclude dev files from exports.
