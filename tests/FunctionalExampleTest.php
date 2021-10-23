@@ -22,16 +22,44 @@ class FunctionalExampleTest extends TestCase
 
     public function testQueryExampleExecutedWithCgiReturnsDefaultValueAfterContentTypeHeader()
     {
-        $code = 1;
-        $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
-        system("php-cgi --version >$null 2>$null", $code);
-        if ($code !== 0) {
+        if (!$this->canExecute('php-cgi --version')) {
             $this->markTestSkipped('Unable to execute "php-cgi"');
         }
 
         $output = $this->execExample('php-cgi query.php');
 
         $this->assertStringEndsWith("\r\n\r\n" . 'value' . PHP_EOL . '42' . PHP_EOL, $output);
+    }
+
+    public function testQueryExampleWithOpenBasedirRestrictedRunsDefaultPhpAndReturnsDefaultValue()
+    {
+        if (!$this->canExecute('php --version')) {
+            $this->markTestSkipped('Unable to execute "php"');
+        }
+
+        $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php');
+
+        $this->assertEquals('value' . PHP_EOL . '42' . PHP_EOL, $output);
+    }
+
+    public function testQueryExampleExecutedWithCgiAndOpenBasedirRestrictedRunsDefaultPhpAndReturnsDefaultValueAfterContentTypeHeader()
+    {
+        if (!$this->canExecute('php-cgi --version') || !$this->canExecute('php --version')) {
+            $this->markTestSkipped('Unable to execute "php-cgi" or "php"');
+        }
+
+        $output = $this->execExample('php-cgi -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php');
+
+        $this->assertStringEndsWith("\r\n\r\n" . 'value' . PHP_EOL . '42' . PHP_EOL, $output);
+    }
+
+    private function canExecute($command)
+    {
+        $code = 1;
+        $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
+        system("$command >$null 2>$null", $code);
+
+        return $code === 0;
     }
 
     private function execExample($command)

@@ -375,7 +375,7 @@ class Factory
     private function which($bin)
     {
         foreach (\explode(\PATH_SEPARATOR, \getenv('PATH')) as $path) {
-            if (\is_executable($path . \DIRECTORY_SEPARATOR . $bin)) {
+            if (@\is_executable($path . \DIRECTORY_SEPARATOR . $bin)) {
                 return $path . \DIRECTORY_SEPARATOR . $bin;
             }
         }
@@ -396,20 +396,26 @@ class Factory
 
     /**
      * @return string
+     * @codeCoverageIgnore Covered by `/tests/FunctionalExampleTest.php` instead.
      */
     private function php()
     {
-        // if this is the php-cgi binary, check if we can execute the php binary instead
-        $binary = \PHP_BINARY;
-        $candidate = \str_replace('-cgi', '', $binary);
-        if ($candidate !== $binary && \is_executable($candidate)) {
-            $binary = $candidate; // @codeCoverageIgnore
+        $binary = 'php';
+        if (\PHP_SAPI === 'cli' || \PHP_SAPI === 'cli-server') {
+            // use same PHP_BINARY in CLI mode, but do not use same binary for CGI/FPM
+            $binary = \PHP_BINARY;
+        } else {
+            // if this is the php-cgi binary, check if we can execute the php binary instead
+            $candidate = \str_replace('-cgi', '', \PHP_BINARY);
+            if ($candidate !== \PHP_BINARY && @\is_executable($candidate)) {
+                $binary = $candidate;
+            }
         }
 
         // if `php` is a symlink to the php binary, use the shorter `php` name
         // this is purely cosmetic feature for the process list
-        if (\realpath($this->which('php')) === $binary) {
-            $binary = 'php'; // @codeCoverageIgnore
+        if ($binary !== 'php' && \realpath($this->which('php')) === $binary) {
+            $binary = 'php';
         }
 
         return $binary;
