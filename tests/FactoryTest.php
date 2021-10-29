@@ -7,6 +7,31 @@ use Clue\React\SQLite\Factory;
 
 class FactoryTest extends TestCase
 {
+    public function testConstructWithoutLoopAssignsLoopAutomatically()
+    {
+        $factory = new Factory();
+
+        $ref = new \ReflectionProperty($factory, 'loop');
+        $ref->setAccessible(true);
+        $loop = $ref->getValue($factory);
+
+        $this->assertInstanceOf('React\EventLoop\LoopInterface', $loop);
+    }
+
+    public function testConstructWitLoopAndBinaryAssignsBothVariables()
+    {
+        $loop = $this->getMockBuilder('React\EventLoop\LoopInterface')->getMock();
+        $factory = new Factory($loop, 'php6.0');
+
+        $ref = new \ReflectionProperty($factory, 'loop');
+        $ref->setAccessible(true);
+        $this->assertSame($loop, $ref->getValue($factory));
+
+        $ref = new \ReflectionProperty($factory, 'bin');
+        $ref->setAccessible(true);
+        $this->assertSame('php6.0', $ref->getValue($factory));
+    }
+
     public function testLoadLazyReturnsDatabaseImmediately()
     {
         $loop = $this->getMockBuilder('React\EventLoop\LoopInterface')->getMock();

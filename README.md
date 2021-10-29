@@ -101,6 +101,18 @@ here in order to use the [default loop](https://github.com/reactphp/event-loop#l
 This value SHOULD NOT be given unless you're sure you want to explicitly use a
 given event loop instance.
 
+This class takes an optional `?string $binary` parameter that can be used to
+pass a custom PHP binary to use when spawning a child process. You can use a
+`null` value here in order to automatically detect the current PHP binary. You
+may want to pass a custom executable path if this automatic detection fails or
+if you explicitly want to run the child process with a different PHP version or
+environment than your parent process.
+
+```php
+// advanced usage: pass custom PHP binary to use when spawning child process
+$factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
+```
+
 #### open()
 
 The `open(string $filename, int $flags = null): PromiseInterface<DatabaseInterface>` method can be used to

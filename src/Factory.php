@@ -15,7 +15,10 @@ class Factory
     /** @var LoopInterface */
     private $loop;
 
-    private $bin = PHP_BINARY;
+    /** @var string */
+    private $bin;
+
+    /** @var bool */
     private $useSocket;
 
     /**
@@ -31,26 +34,28 @@ class Factory
      * This value SHOULD NOT be given unless you're sure you want to explicitly use a
      * given event loop instance.
      *
+     * This class takes an optional `?string $binary` parameter that can be used to
+     * pass a custom PHP binary to use when spawning a child process. You can use a
+     * `null` value here in order to automatically detect the current PHP binary. You
+     * may want to pass a custom executable path if this automatic detection fails or
+     * if you explicitly want to run the child process with a different PHP version or
+     * environment than your parent process.
+     *
+     * ```php
+     * // advanced usage: pass custom PHP binary to use when spawning child process
+     * $factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
+     * ```
+     *
      * @param ?LoopInterface $loop
+     * @param ?string $binary
      */
-    public function __construct(LoopInterface $loop = null)
+    public function __construct(LoopInterface $loop = null, $binary = null)
     {
         $this->loop = $loop ?: Loop::get();
+        $this->bin = $binary === null ? $this->php() : $binary;
 
         // use socket I/O for Windows only, use faster process pipes everywhere else
-        $this->useSocket = DIRECTORY_SEPARATOR === '\\';
-
-        // if this is the php-cgi binary, check if we can execute the php binary instead
-        $candidate = \str_replace('-cgi', '', $this->bin);
-        if ($candidate !== $this->bin && \is_executable($candidate)) {
-            $this->bin = $candidate; // @codeCoverageIgnore
-        }
-
-        // if `php` is a symlink to the php binary, use the shorter `php` name
-        // this is purely cosmetic feature for the process list
-        if (\realpath($this->which('php')) === $this->bin) {
-            $this->bin = 'php'; // @codeCoverageIgnore
-        }
+        $this->useSocket = \DIRECTORY_SEPARATOR === '\\';
     }
 
     /**
@@ -359,5 +364,26 @@ class Factory
             $filename = \getcwd() . \DIRECTORY_SEPARATOR . $filename;
         }
         return $filename;
+    }
+
+    /**
+     * @return string
+     */
+    private function php()
+    {
+        // if this is the php-cgi binary, check if we can execute the php binary instead
+        $binary = \PHP_BINARY;
+        $candidate = \str_replace('-cgi', '', $binary);
+        if ($candidate !== $binary && \is_executable($candidate)) {
+            $binary = $candidate; // @codeCoverageIgnore
+        }
+
+        // if `php` is a symlink to the php binary, use the shorter `php` name
+        // this is purely cosmetic feature for the process list
+        if (\realpath($this->which('php')) === $binary) {
+            $binary = 'php'; // @codeCoverageIgnore
+        }
+
+        return $binary;
     }
 }
