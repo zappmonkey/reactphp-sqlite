@@ -248,10 +248,7 @@ class Factory
         $process->start($this->loop);
 
         $db = new ProcessIoDatabase($process);
-        $args = array($filename);
-        if ($flags !== null) {
-            $args[] = $flags;
-        }
+        $args = array($filename, $flags);
 
         return $db->send('open', $args)->then(function () use ($db) {
             return $db;
@@ -333,10 +330,7 @@ class Factory
             });
 
             $db = new ProcessIoDatabase($process);
-            $args = array($filename);
-            if ($flags !== null) {
-                $args[] = $flags;
-            }
+            $args = array($filename, $flags);
 
             $db->send('open', $args)->then(function () use ($deferred, $db) {
                 $deferred->resolve($db);
