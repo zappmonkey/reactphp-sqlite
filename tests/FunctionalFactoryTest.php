@@ -84,7 +84,7 @@ class FunctionalFactoryTest extends TestCase
             echo 'Error: ' . $e->getMessage() . PHP_EOL;
         });
 
-        $this->expectOutputString('Error: No connection detected' . PHP_EOL);
+        $this->expectOutputString('Error: Database process died while setting up connection' . PHP_EOL);
         Loop::run();
     }
 }
