@@ -61,7 +61,9 @@ class FunctionalFactoryTest extends TestCase
             echo 'Error: ' . $e->getMessage() . PHP_EOL;
         });
 
-        $this->expectOutputString('Error: Unable to open database: unable to open database file' . PHP_EOL);
+        // Unable to open database: unable to open database file
+        // Unable to open database: bad parameter or other API misuse (only between PHP 7.4.0 and PHP 7.4.7 as per https://3v4l.org/9SjgK)
+        $this->expectOutputRegex('/^' . preg_quote('Error: Unable to open database: ', '/') . '.*$/');
         Loop::run();
     }
 
@@ -82,7 +84,7 @@ class FunctionalFactoryTest extends TestCase
             echo 'Error: ' . $e->getMessage() . PHP_EOL;
         });
 
-        $this->expectOutputString('Error: No connection detected' . PHP_EOL);
+        $this->expectOutputString('Error: Database process died while setting up connection' . PHP_EOL);
         Loop::run();
     }
 }

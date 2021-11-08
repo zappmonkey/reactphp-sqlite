@@ -305,6 +305,16 @@ class Factory
             $deferred->reject(new \RuntimeException('No connection detected'));
         });
 
+        $process->on('exit', function () use ($deferred, $server, $timeout) {
+            $this->loop->cancelTimer($timeout);
+            if (is_resource($server)) {
+                $this->loop->removeReadStream($server);
+                fclose($server);
+            }
+
+            $deferred->reject(new \RuntimeException('Database process died while setting up connection'));
+        });
+
         $this->loop->addReadStream($server, function () use ($server, $timeout, $filename, $flags, $deferred, $process) {
             // accept once connection on server socket and stop server socket
             $this->loop->cancelTimer($timeout);
