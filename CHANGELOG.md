@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.0 (2021-11-12)
+
+*   Feature: Support upcoming PHP 8.1 release.
+    (#49 by @SimonFrings)
+
+*   Feature: Support passing custom PHP binary as optional argument to `Factory`.
+    (#45 and #46 by @clue)
+
+    ```php
+    // advanced usage: pass custom PHP binary to use when spawning child process
+    $factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
+    ```
+
+*   Feature: Support using blocking SQLite adapter when using an empty binary path.
+    (#48 by @clue)
+
+    ```php
+    // advanced usage: empty binary path runs blocking SQLite in same process
+    $factory = new Clue\React\SQLite\Factory(null, '');
+    ```
+
+*   Feature: Use default `php` binary instead of respecting `PHP_BINARY` when automatic binary detection fails for non-CLI SAPIs.
+    (#50 by @clue)
 
 ## 1.2.0 (2021-10-04)
 
