@@ -11,7 +11,7 @@ It offers a common SQL interface to process queries to work with its relational 
 in memory or persist to a simple, portable database file.
 Its lightweight design makes it an ideal candidate for an embedded database in
 portable (CLI) applications, test environments and much more.
-This library provides you a simple API to work with your SQLite database from within PHP.
+This library provides a simple API to work with your SQLite database from within PHP.
 Because working with SQLite and the underlying filesystem is inherently blocking,
 this project is built as a lightweight non-blocking process wrapper around it,
 so you can query your data without blocking your main application.
@@ -135,7 +135,7 @@ success or will reject with an `Exception` on error. The SQLite extension
 is inherently blocking, so this method will spawn an SQLite worker process
 to run all SQLite commands and queries in a separate process without
 blocking the main process. On Windows, it uses a temporary network socket
-for this communication, on all other platforms it communicates over
+for this communication, on all other platforms, it communicates over
 standard process I/O pipes.
 
 ```php
@@ -218,7 +218,7 @@ will not have to wait for an actual underlying connection.
 
 Depending on your particular use case, you may prefer this method or the
 underlying `open()` method which resolves with a promise. For many
-simple use cases it may be easier to create a lazy connection.
+simple use cases, it may be easier to create a lazy connection.
 
 The `$filename` parameter is the path to the SQLite database file or
 `:memory:` to create a temporary in-memory database. As of PHP 7.0.10, an
@@ -254,7 +254,7 @@ $db = $factory->openLazy('users.db', null, ['idle' => 0.1]);
 ### DatabaseInterface
 
 The `DatabaseInterface` represents a connection that is responsible for
-comunicating with your SQLite database wrapper, managing the connection state
+communicating with your SQLite database wrapper, managing the connection state
 and sending your database queries.
 
 #### exec()
@@ -435,14 +435,14 @@ This project follows [SemVer](https://semver.org/).
 This will install the latest supported version:
 
 ```bash
-$ composer require clue/reactphp-sqlite:^1.1
+$ composer require clue/reactphp-sqlite:^1.2
 ```
 
 See also the [CHANGELOG](CHANGELOG.md) for details about version upgrades.
 
 This project aims to run on any platform and thus only requires `ext-sqlite3` and
 supports running on legacy PHP 5.4 through current PHP 8+.
-It's *highly recommended to use PHP 7+* for this project.
+It's *highly recommended to use the latest supported PHP version* for this project.
 
 This project is implemented as a lightweight process wrapper around the `ext-sqlite3`
 PHP extension, so you'll have to make sure that you have a suitable version

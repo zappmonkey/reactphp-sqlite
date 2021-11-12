@@ -79,7 +79,7 @@ class Factory
      * is inherently blocking, so this method will spawn an SQLite worker process
      * to run all SQLite commands and queries in a separate process without
      * blocking the main process. On Windows, it uses a temporary network socket
-     * for this communication, on all other platforms it communicates over
+     * for this communication, on all other platforms, it communicates over
      * standard process I/O pipes.
      *
      * ```php
@@ -181,7 +181,7 @@ class Factory
      *
      * Depending on your particular use case, you may prefer this method or the
      * underlying `open()` method which resolves with a promise. For many
-     * simple use cases it may be easier to create a lazy connection.
+     * simple use cases, it may be easier to create a lazy connection.
      *
      * The `$filename` parameter is the path to the SQLite database file or
      * `:memory:` to create a temporary in-memory database. As of PHP 7.0.10, an
