@@ -60,8 +60,8 @@ Let's take these projects to the next level together! 🚀
 ## Quickstart example
 
 The following example code demonstrates how this library can be used to open an
-existing SQLite database file (or automatically create it on first run) and then
-`INSERT` a new record to the database:
+existing SQLite database file (or automatically create it on the first run) and
+then `INSERT` a new record to the database:
 
 ```php
 <?php
@@ -69,21 +69,24 @@ existing SQLite database file (or automatically create it on first run) and then
 require __DIR__ . '/vendor/autoload.php';
 
 $factory = new Clue\React\SQLite\Factory();
+$db = $factory->openLazy(__DIR__ . '/users.db');
 
-$db = $factory->openLazy('users.db');
-$db->exec('CREATE TABLE IF NOT EXISTS foo (id INTEGER PRIMARY KEY AUTOINCREMENT, bar STRING)');
+$db->exec('CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY AUTOINCREMENT, name STRING)');
 
 $name = 'Alice';
-$db->query('INSERT INTO foo (bar) VALUES (?)', [$name])->then(
+$db->query('INSERT INTO user (name) VALUES (?)', [$name])->then(
     function (Clue\React\SQLite\Result $result) use ($name) {
         echo 'New ID for ' . $name . ': ' . $result->insertId . PHP_EOL;
+    },
+    function (Exception $e) {
+        echo 'Error: ' . $e->getMessage() . PHP_EOL;
     }
 );
 
 $db->quit();
 ```
 
-See also the [examples](examples).
+See also the [examples](examples/).
 
 ## Usage
 
