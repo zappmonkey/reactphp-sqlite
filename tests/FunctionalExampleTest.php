@@ -10,14 +10,14 @@ class FunctionalExampleTest extends TestCase
     {
         $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' query.php');
 
-        $this->assertEquals('value' . PHP_EOL . '42' . PHP_EOL, $output);
+        $this->assertEquals('value' . "\n" . '42' . "\n", $output);
     }
 
     public function testQueryExampleReturnsCalculatedValueFromPlaceholderVariables()
     {
         $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' query.php "SELECT ?+? AS result" 1 2');
 
-        $this->assertEquals('result' . PHP_EOL . '3' . PHP_EOL, $output);
+        $this->assertEquals('result' . "\n" . '3' . "\n", $output);
     }
 
     public function testQueryExampleExecutedWithCgiReturnsDefaultValueAfterContentTypeHeader()
@@ -28,14 +28,14 @@ class FunctionalExampleTest extends TestCase
 
         $output = $this->execExample('php-cgi query.php');
 
-        $this->assertStringEndsWith("\r\n\r\n" . 'value' . PHP_EOL . '42' . PHP_EOL, $output);
+        $this->assertStringEndsWith("\n\n" . 'value' . "\n" . '42' . "\n", $output);
     }
 
     public function testQueryExampleWithOpenBasedirRestrictedReturnsDefaultValue()
     {
         $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php');
 
-        $this->assertEquals('value' . PHP_EOL . '42' . PHP_EOL, $output);
+        $this->assertEquals('value' . "\n" . '42' . "\n", $output);
     }
 
     public function testQueryExampleWithOpenBasedirRestrictedAndAdditionalFileDescriptorReturnsDefaultValue()
@@ -46,7 +46,7 @@ class FunctionalExampleTest extends TestCase
 
         $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php 3</dev/null');
 
-        $this->assertEquals('value' . PHP_EOL . '42' . PHP_EOL, $output);
+        $this->assertEquals('value' . "\n" . '42' . "\n", $output);
     }
 
     public function testQueryExampleExecutedWithCgiAndOpenBasedirRestrictedRunsDefaultPhpAndReturnsDefaultValueAfterContentTypeHeader()
@@ -57,7 +57,7 @@ class FunctionalExampleTest extends TestCase
 
         $output = $this->execExample('php-cgi -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php');
 
-        $this->assertStringEndsWith("\r\n\r\n" . 'value' . PHP_EOL . '42' . PHP_EOL, $output);
+        $this->assertStringEndsWith("\n\n" . 'value' . "\n" . '42' . "\n", $output);
     }
 
     private function canExecute($command)
@@ -73,6 +73,6 @@ class FunctionalExampleTest extends TestCase
     {
         chdir(__DIR__ . '/../examples/');
 
-        return shell_exec($command);
+        return str_replace("\r\n", "\n", shell_exec($command));
     }
 }
