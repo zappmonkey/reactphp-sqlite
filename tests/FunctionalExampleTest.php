@@ -31,13 +31,20 @@ class FunctionalExampleTest extends TestCase
         $this->assertStringEndsWith("\r\n\r\n" . 'value' . PHP_EOL . '42' . PHP_EOL, $output);
     }
 
-    public function testQueryExampleWithOpenBasedirRestrictedRunsDefaultPhpAndReturnsDefaultValue()
+    public function testQueryExampleWithOpenBasedirRestrictedReturnsDefaultValue()
     {
-        if (!$this->canExecute('php --version')) {
-            $this->markTestSkipped('Unable to execute "php"');
+        $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php');
+
+        $this->assertEquals('value' . PHP_EOL . '42' . PHP_EOL, $output);
+    }
+
+    public function testQueryExampleWithOpenBasedirRestrictedAndAdditionalFileDescriptorReturnsDefaultValue()
+    {
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $this->markTestSkipped('Not supported on Windows');
         }
 
-        $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php');
+        $output = $this->execExample(escapeshellarg(PHP_BINARY) . ' -dopen_basedir=' . escapeshellarg(dirname(__DIR__)) . ' query.php 3</dev/null');
 
         $this->assertEquals('value' . PHP_EOL . '42' . PHP_EOL, $output);
     }

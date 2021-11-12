@@ -254,11 +254,12 @@ class Factory
             \defined('STDERR') ? \STDERR : \fopen('php://stderr', 'w')
         );
 
-        // do not inherit open FDs by explicitly overwriting existing FDs with dummy files
+        // do not inherit open FDs by explicitly overwriting existing FDs with dummy files.
+        // Accessing /dev/null with null spec requires PHP 7.4+, older PHP versions may be restricted due to open_basedir, so let's reuse STDERR here.
         // additionally, close all dummy files in the child process again
         foreach ($fds as $fd) {
             if ($fd > 2) {
-                $pipes[$fd] = array('file', '/dev/null', 'r');
+                $pipes[$fd] = \PHP_VERSION_ID >= 70400 ? ['null'] : $pipes[2];
                 $command .= ' ' . $fd . '>&-';
             }
         }
