@@ -3,11 +3,11 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 $factory = new Clue\React\SQLite\Factory();
+$db = $factory->openLazy(__DIR__ . '/users.db');
 
-$search = isset($argv[1]) ? $argv[1] : 'foo';
-$db = $factory->openLazy('test.db');
+$search = isset($argv[1]) ? $argv[1] : '';
 
-$db->query('SELECT * FROM foo WHERE bar LIKE ?', ['%' . $search . '%'])->then(function (Clue\React\SQLite\Result $result) {
+$db->query('SELECT * FROM user WHERE name LIKE ?', ['%' . $search . '%'])->then(function (Clue\React\SQLite\Result $result) {
     echo 'Found ' . count($result->rows) . ' rows: ' . PHP_EOL;
     echo implode("\t", $result->columns) . PHP_EOL;
     foreach ($result->rows as $row) {
