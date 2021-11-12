@@ -113,6 +113,18 @@ environment than your parent process.
 $factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
 ```
 
+Or you may use this parameter to pass an empty PHP binary path which will
+cause this project to not spawn a PHP child process for any database
+interactions at all. In this case, using SQLite will block the main
+process, but continues to provide the exact same async API. This can be
+useful if concurrent execution is not needed, especially when running
+behind a traditional web server (non-CLI SAPI).
+
+```php
+// advanced usage: empty binary path runs blocking SQLite in same process
+$factory = new Clue\React\SQLite\Factory(null, '');
+```
+
 #### open()
 
 The `open(string $filename, int $flags = null): PromiseInterface<DatabaseInterface>` method can be used to

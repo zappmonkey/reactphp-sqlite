@@ -10,7 +10,7 @@ use React\EventLoop\Loop;
 
 class FunctionalDatabaseTest extends TestCase
 {
-    public function provideSocketFlags()
+    public function provideSocketFlag()
     {
         if (DIRECTORY_SEPARATOR === '\\') {
             return [[true]];
@@ -19,17 +19,43 @@ class FunctionalDatabaseTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
-     */
-    public function testOpenMemoryDatabaseResolvesWithDatabaseAndRunsUntilClose($flag)
+    public function providePhpBinaryAndSocketFlag()
     {
-        $factory = new Factory();
+        return array_merge([
+            [
+                null,
+                null
+            ],
+            [
+                '',
+                null
+            ],
+            [
+                null,
+                true
+            ]
+        ], DIRECTORY_SEPARATOR === '\\' ? [] : [
+            [
+                null,
+                false
+            ]
+        ]);
+    }
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+    /**
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
+     */
+    public function testOpenMemoryDatabaseResolvesWithDatabaseAndRunsUntilClose($php, $useSocket)
+    {
+        $factory = new Factory(null, $php);
+
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -45,16 +71,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testOpenMemoryDatabaseResolvesWithDatabaseAndRunsUntilQuit($flag)
+    public function testOpenMemoryDatabaseResolvesWithDatabaseAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -110,16 +139,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testOpenInvalidPathRejects($flag)
+    public function testOpenInvalidPathRejects($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open('/dev/foo/bar');
 
@@ -132,16 +164,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testOpenInvalidPathWithNullByteRejects($flag)
+    public function testOpenInvalidPathWithNullByteRejects($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open("test\0.db");
 
@@ -154,16 +189,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testOpenInvalidFlagsRejects($flag)
+    public function testOpenInvalidFlagsRejects($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open('::memory::', SQLITE3_OPEN_READONLY);
 
@@ -176,16 +214,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQuitResolvesAndRunsUntilQuit($flag)
+    public function testQuitResolvesAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -198,21 +239,24 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQuitResolvesAndRunsUntilQuitWhenParentHasManyFileDescriptors($flag)
+    public function testQuitResolvesAndRunsUntilQuitWhenParentHasManyFileDescriptors($php, $useSocket)
     {
         $servers = array();
         for ($i = 0; $i < 100; ++$i) {
             $servers[] = stream_socket_server('tcp://127.0.0.1:0');
         }
 
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -229,16 +273,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQuitTwiceWillRejectSecondCall($flag)
+    public function testQuitTwiceWillRejectSecondCall($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -252,16 +299,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQueryIntegerResolvesWithResultWithTypeIntegerAndRunsUntilQuit($flag)
+    public function testQueryIntegerResolvesWithResultWithTypeIntegerAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -280,16 +330,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQueryStringResolvesWithResultWithTypeStringAndRunsUntilQuit($flag)
+    public function testQueryStringResolvesWithResultWithTypeStringAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -308,16 +361,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQueryInvalidTableRejectsWithExceptionAndRunsUntilQuit($flag)
+    public function testQueryInvalidTableRejectsWithExceptionAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -336,16 +392,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQueryInvalidTableWithPlaceholderRejectsWithExceptionAndRunsUntilQuit($flag)
+    public function testQueryInvalidTableWithPlaceholderRejectsWithExceptionAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -535,16 +594,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQueryRejectsWhenQueryIsInvalid($flag)
+    public function testQueryRejectsWhenQueryIsInvalid($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -559,16 +621,16 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider provideSocketFlag
+     * @param bool $useSocket
      */
-    public function testQueryRejectsWhenClosedImmediately($flag)
+    public function testQueryRejectsWhenClosedImmediately($useSocket)
     {
         $factory = new Factory();
 
         $ref = new \ReflectionProperty($factory, 'useSocket');
         $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        $ref->setValue($factory, $useSocket);
 
         $promise = $factory->open(':memory:');
 
@@ -583,16 +645,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testExecCreateTableResolvesWithResultWithoutRows($flag)
+    public function testExecCreateTableResolvesWithResultWithoutRows($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -611,16 +676,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testExecRejectsWhenClosedImmediately($flag)
+    public function testExecRejectsWhenClosedImmediately($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -635,16 +703,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testExecRejectsWhenAlreadyClosed($flag)
+    public function testExecRejectsWhenAlreadyClosed($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -658,16 +729,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQueryInsertResolvesWithEmptyResultSetWithLastInsertIdAndRunsUntilQuit($flag)
+    public function testQueryInsertResolvesWithEmptyResultSetWithLastInsertIdAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 
@@ -690,16 +764,19 @@ class FunctionalDatabaseTest extends TestCase
     }
 
     /**
-     * @dataProvider provideSocketFlags
-     * @param bool $flag
+     * @dataProvider providePhpBinaryAndSocketFlag
+     * @param ?string $php
+     * @param ?bool $useSocket
      */
-    public function testQuerySelectEmptyResolvesWithEmptyResultSetWithColumnsAndNoRowsAndRunsUntilQuit($flag)
+    public function testQuerySelectEmptyResolvesWithEmptyResultSetWithColumnsAndNoRowsAndRunsUntilQuit($php, $useSocket)
     {
-        $factory = new Factory();
+        $factory = new Factory(null, $php);
 
-        $ref = new \ReflectionProperty($factory, 'useSocket');
-        $ref->setAccessible(true);
-        $ref->setValue($factory, $flag);
+        if ($useSocket !== null) {
+            $ref = new \ReflectionProperty($factory, 'useSocket');
+            $ref->setAccessible(true);
+            $ref->setValue($factory, $useSocket);
+        }
 
         $promise = $factory->open(':memory:');
 

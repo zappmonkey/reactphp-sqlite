@@ -2,6 +2,7 @@
 
 namespace Clue\React\SQLite;
 
+use Clue\React\SQLite\Io\BlockingDatabase;
 use Clue\React\SQLite\Io\LazyDatabase;
 use Clue\React\SQLite\Io\ProcessIoDatabase;
 use React\ChildProcess\Process;
@@ -44,6 +45,18 @@ class Factory
      * ```php
      * // advanced usage: pass custom PHP binary to use when spawning child process
      * $factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
+     * ```
+     *
+     * Or you may use this parameter to pass an empty PHP binary path which will
+     * cause this project to not spawn a PHP child process for any database
+     * interactions at all. In this case, using SQLite will block the main
+     * process, but continues to provide the exact same async API. This can be
+     * useful if concurrent execution is not needed, especially when running
+     * behind a traditional web server (non-CLI SAPI).
+     *
+     * ```php
+     * // advanced usage: empty binary path runs blocking SQLite in same process
+     * $factory = new Clue\React\SQLite\Factory(null, '');
      * ```
      *
      * @param ?LoopInterface $loop
@@ -109,6 +122,17 @@ class Factory
     public function open($filename, $flags = null)
     {
         $filename = $this->resolve($filename);
+
+        if ($this->bin === '') {
+            try {
+                return \React\Promise\resolve(new BlockingDatabase($filename, $flags));
+            } catch (\Exception $e) {
+                return \React\Promise\reject(new \RuntimeException($e->getMessage()) );
+            } catch (\Error $e) {
+                return \React\Promise\reject(new \RuntimeException($e->getMessage()));
+            }
+        }
+
         return $this->useSocket ? $this->openSocketIo($filename, $flags) : $this->openProcessIo($filename, $flags);
     }
 
@@ -248,10 +272,7 @@ class Factory
         $process->start($this->loop);
 
         $db = new ProcessIoDatabase($process);
-        $args = array($filename);
-        if ($flags !== null) {
-            $args[] = $flags;
-        }
+        $args = array($filename, $flags);
 
         return $db->send('open', $args)->then(function () use ($db) {
             return $db;
@@ -333,10 +354,7 @@ class Factory
             });
 
             $db = new ProcessIoDatabase($process);
-            $args = array($filename);
-            if ($flags !== null) {
-                $args[] = $flags;
-            }
+            $args = array($filename, $flags);
 
             $db->send('open', $args)->then(function () use ($deferred, $db) {
                 $deferred->resolve($db);
