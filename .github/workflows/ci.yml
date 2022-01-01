@@ -36,3 +36,4 @@ jobs:
       - run: vendor/bin/phpunit --coverage-text -c phpunit.xml.legacy
         if: ${{ matrix.php < 7.3 }}
       - run: cd tests/install-as-dep && composer install && php query.php
+      - run: cd tests/install-as-dep && php -d phar.readonly=0 vendor/bin/phar-composer build . query.phar && php query.phar

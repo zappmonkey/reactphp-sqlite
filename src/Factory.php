@@ -226,7 +226,16 @@ class Factory
 
     private function openProcessIo($filename, $flags = null)
     {
-        $command = 'exec ' . \escapeshellarg($this->bin) . ' sqlite-worker.php';
+        $cwd = null;
+        $worker = \dirname(__DIR__) . '/res/sqlite-worker.php';
+
+        if (\class_exists('Phar', false) && \Phar::running(false) !== '') {
+            $worker = '-r' . 'require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
+        } else {
+            $cwd = __DIR__ . '/../res';
+            $worker = \basename($worker);
+        }
+        $command = 'exec ' . \escapeshellarg($this->bin) . ' ' . escapeshellarg($worker);
 
         // Try to get list of all open FDs (Linux/Mac and others)
         $fds = @\scandir('/dev/fd');
@@ -269,7 +278,7 @@ class Factory
             $command = 'exec bash -c ' . \escapeshellarg($command);
         }
 
-        $process = new Process($command, __DIR__ . '/../res', null, $pipes);
+        $process = new Process($command, $cwd, null, $pipes);
         $process->start($this->loop);
 
         $db = new ProcessIoDatabase($process);
@@ -285,7 +294,16 @@ class Factory
 
     private function openSocketIo($filename, $flags = null)
     {
-        $command = \escapeshellarg($this->bin) . ' sqlite-worker.php';
+        $cwd = null;
+        $worker = \dirname(__DIR__) . '/res/sqlite-worker.php';
+
+        if (\class_exists('Phar', false) && \Phar::running(false) !== '') {
+            $worker = '-r' . 'require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
+        } else {
+            $cwd = __DIR__ . '/../res';
+            $worker = \basename($worker);
+        }
+        $command = \escapeshellarg($this->bin) . ' ' . escapeshellarg($worker);
 
         // launch process without default STDIO pipes, but inherit STDERR
         $null = \DIRECTORY_SEPARATOR === '\\' ? 'nul' : '/dev/null';
@@ -307,7 +325,7 @@ class Factory
         stream_set_blocking($server, false);
         $command .= ' ' . stream_socket_get_name($server, false);
 
-        $process = new Process($command, __DIR__ . '/../res', null, $pipes);
+        $process = new Process($command, $cwd, null, $pipes);
         $process->start($this->loop);
 
         $deferred = new Deferred(function () use ($process, $server) {
