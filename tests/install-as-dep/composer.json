@@ -1,0 +1,11 @@
+{
+    "require": {
+        "clue/reactphp-sqlite": "*@dev"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../"
+        }
+    ]
+}
