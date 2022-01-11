@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 (2022-01-11)
+
+*   Feature: Support running from PHAR.
+    (#55 by @clue)
+
+*   Feature: Simplify internal JSON-RPC protocol by avoiding unneeded escapes.
+    (#56 by @clue)
+
 ## 1.3.0 (2021-11-12)
 
 *   Feature: Support upcoming PHP 8.1 release.
