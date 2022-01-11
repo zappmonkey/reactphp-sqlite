@@ -4,8 +4,12 @@
 //
 // Communication happens via newline-delimited JSON-RPC messages, see:
 // $ php res/sqlite-worker.php
-// < {"id":0,"method":"open","params":["test.db"]}
-// > {"id":0,"result":true}
+// < {"id":1,"method":"open","params":["examples/users.db",null]}
+// > {"id":1,"result":true}
+// < {"id":2,"method":"query","params":["SELECT 42",[]]}
+// > {"id":2,"result":{"columns":["42"],"rows":[{"42":42}],"insertId":0,"changed":0}}
+// < {"id":3,"method":"query","params":["SELECT ? AS name",["Alice"]]}
+// > {"id":3,"result":{"columns":["name"],"rows":[{"name":"Alice"}],"insertId":0,"changed":0}}
 //
 // Or via socket connection (used for Windows, which does not support non-blocking process pipe I/O)
 // $ nc localhost 8080
@@ -45,11 +49,11 @@ if (isset($_SERVER['argv'][1])) {
     });
 
     $in = new Decoder($through);
-    $out = new Encoder($stream);
+    $out = new Encoder($stream, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | (\PHP_VERSION_ID >= 50606 ? \JSON_PRESERVE_ZERO_FRACTION : 0));
 } else {
     // no socket address given, use process I/O pipes
     $in = new Decoder(new ReadableResourceStream(\STDIN, $loop));
-    $out = new Encoder(new WritableResourceStream(\STDOUT, $loop));
+    $out = new Encoder(new WritableResourceStream(\STDOUT, $loop), \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | (\PHP_VERSION_ID >= 50606 ? \JSON_PRESERVE_ZERO_FRACTION : 0));
 }
 
 // report error when input is invalid NDJSON
@@ -135,7 +139,7 @@ $in->on('data', function ($data) use (&$db, $in, $out) {
                     foreach ($row as &$value) {
                         if (\is_string($value) && \preg_match('/[\x00-\x08\x11\x12\x14-\x1f\x7f]/u', $value) !== 0) {
                             $value = ['base64' => \base64_encode($value)];
-                        } elseif (\is_float($value)) {
+                        } elseif (\is_float($value) && \PHP_VERSION_ID < 50606) {
                             $value = ['float' => $value];
                         }
                     }
