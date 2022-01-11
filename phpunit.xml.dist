@@ -9,6 +9,7 @@
     <testsuites>
         <testsuite name="SQLite React Test Suite">
             <directory>./tests/</directory>
+            <exclude>./tests/install-as-dep/</exclude>
         </testsuite>
     </testsuites>
     <coverage>
