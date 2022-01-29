@@ -6,6 +6,7 @@ on:
 
 jobs:
   PHPUnit:
+    name: PHPUnit (PHP ${{ matrix.php }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -25,19 +26,15 @@ jobs:
           - 5.4
     steps:
       - uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: sqlite3
+          coverage: xdebug
       - run: composer install
       - run: vendor/bin/phpunit --coverage-text
         if: ${{ matrix.php >= 7.3 }}
       - run: vendor/bin/phpunit --coverage-text -c phpunit.xml.legacy
         if: ${{ matrix.php < 7.3 }}
       - run: cd tests/install-as-dep && composer install && php query.php
-      - run: cd tests/install-as-dep && php -d phar.readonly=0 vendor/bin/phar-composer build . query.phar
-        continue-on-error: ${{ matrix.os == 'windows-2019' }}
-        id: phar
-      - run: php tests/install-as-dep/query.phar
-        if: ${{ steps.phar.outcome == 'success' }}
+      - run: cd tests/install-as-dep && php -d phar.readonly=0 vendor/bin/phar-composer build . query.phar && php query.phar
