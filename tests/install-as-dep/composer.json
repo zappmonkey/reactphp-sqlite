@@ -3,7 +3,7 @@
         "clue/reactphp-sqlite": "*@dev"
     },
     "require-dev": {
-        "clue/phar-composer": "^1.0"
+        "clue/phar-composer": "^1.4"
     },
     "bin": [
         "query.php"
