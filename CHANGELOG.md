@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 (2022-02-15)
+
+*   Feature: Improve PHAR support, support spawning worker process from PHARs without file extension.
+    (#61 by @clue)
+
+*   Improve test suite and update clue/phar-composer to avoid skipped tests on Windows.
+    (#60 by @clue)
+
 ## 1.4.0 (2022-01-11)
 
 *   Feature: Support running from PHAR.
