@@ -229,8 +229,8 @@ class Factory
         $cwd = null;
         $worker = \dirname(__DIR__) . '/res/sqlite-worker.php';
 
-        if (\class_exists('Phar', false) && \Phar::running(false) !== '') {
-            $worker = '-r' . 'require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
+        if (\class_exists('Phar', false) && ($phar = \Phar::running(false)) !== '') {
+            $worker = '-r' . 'Phar::loadPhar(' . var_export($phar, true) . ');require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
         } else {
             $cwd = __DIR__ . '/../res';
             $worker = \basename($worker);
@@ -297,8 +297,8 @@ class Factory
         $cwd = null;
         $worker = \dirname(__DIR__) . '/res/sqlite-worker.php';
 
-        if (\class_exists('Phar', false) && \Phar::running(false) !== '') {
-            $worker = '-r' . 'require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
+        if (\class_exists('Phar', false) && ($phar = \Phar::running(false)) !== '') {
+            $worker = '-r' . 'Phar::loadPhar(' . var_export($phar, true) . ');require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
         } else {
             $cwd = __DIR__ . '/../res';
             $worker = \basename($worker);
