@@ -480,7 +480,7 @@ class FunctionalDatabaseTest extends TestCase
             ['hello', 'TEXT'],
             ['hellö', 'TEXT'],
             ["hello\tworld\r\n", 'TEXT'],
-            [utf8_decode('hello wörld!'), 'BLOB'],
+            ["hello w\xF6rld!", 'BLOB'],
             ["hello\x7fö", 'BLOB'],
             ["\x03\x02\x001", 'BLOB'],
             ["a\000b", 'BLOB']
