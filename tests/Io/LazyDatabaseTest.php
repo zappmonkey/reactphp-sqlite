@@ -214,7 +214,7 @@ class LazyDatabaseTest extends TestCase
 
         $this->db->exec('CREATE');
         $this->db->exec('CREATE');
-        $deferred->resolve();
+        $deferred->resolve(null);
     }
 
     public function testExecAfterExecWillStartAndCancelIdleTimerWhenSecondExecStartsAfterFirstResolves()
@@ -233,15 +233,15 @@ class LazyDatabaseTest extends TestCase
         $this->loop->expects($this->once())->method('cancelTimer')->with($timer);
 
         $this->db->exec('CREATE');
-        $deferred->resolve();
+        $deferred->resolve(null);
         $this->db->exec('CREATE');
     }
 
     public function testExecFollowedByIdleTimerWillQuitUnderlyingConnectionWithoutCloseEvent()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->disableOriginalConstructor()->setMethods(array('exec', 'quit', 'close'))->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
-        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
+        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\resolve(null));
         $client->expects($this->never())->method('close');
 
         $this->factory->expects($this->once())->method('open')->willReturn(\React\Promise\resolve($client));
@@ -264,8 +264,8 @@ class LazyDatabaseTest extends TestCase
     public function testExecFollowedByIdleTimerWillCloseUnderlyingConnectionWhenQuitFails()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->setMethods(array('exec', 'quit', 'close'))->disableOriginalConstructor()->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
-        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\reject());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
+        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\reject(new \RuntimeException()));
         $client->expects($this->once())->method('close');
 
         $this->factory->expects($this->once())->method('open')->willReturn(\React\Promise\resolve($client));
@@ -288,7 +288,7 @@ class LazyDatabaseTest extends TestCase
     public function testExecAfterIdleTimerWillCloseUnderlyingConnectionBeforeCreatingSecondConnection()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->setMethods(array('exec', 'quit', 'close'))->disableOriginalConstructor()->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
         $client->expects($this->once())->method('quit')->willReturn(new Promise(function () { }));
         $client->expects($this->once())->method('close');
 
@@ -441,7 +441,7 @@ class LazyDatabaseTest extends TestCase
 
         $this->db->query('CREATE');
         $this->db->query('CREATE');
-        $deferred->resolve();
+        $deferred->resolve(null);
     }
 
     public function testQueryAfterQueryWillStartAndCancelIdleTimerWhenSecondQueryStartsAfterFirstResolves()
@@ -460,15 +460,15 @@ class LazyDatabaseTest extends TestCase
         $this->loop->expects($this->once())->method('cancelTimer')->with($timer);
 
         $this->db->query('CREATE');
-        $deferred->resolve();
+        $deferred->resolve(null);
         $this->db->query('CREATE');
     }
 
     public function testQueryFollowedByIdleTimerWillQuitUnderlyingConnectionWithoutCloseEvent()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->disableOriginalConstructor()->setMethods(array('query', 'quit', 'close'))->getMock();
-        $client->expects($this->once())->method('query')->willReturn(\React\Promise\resolve());
-        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('query')->willReturn(\React\Promise\resolve(null));
+        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\resolve(null));
         $client->expects($this->never())->method('close');
 
         $this->factory->expects($this->once())->method('open')->willReturn(\React\Promise\resolve($client));
@@ -531,7 +531,7 @@ class LazyDatabaseTest extends TestCase
     public function testCloseAfterExecWillCloseUnderlyingDatabaseConnectionWhenAlreadyResolved()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\DatabaseInterface')->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
         $client->expects($this->once())->method('close');
 
         $deferred = new Deferred();
@@ -556,7 +556,7 @@ class LazyDatabaseTest extends TestCase
         $this->loop->expects($this->once())->method('cancelTimer')->with($timer);
 
         $this->db->exec('CREATE');
-        $deferred->resolve();
+        $deferred->resolve(null);
         $this->db->close();
     }
 
@@ -586,7 +586,7 @@ class LazyDatabaseTest extends TestCase
     public function testCloseAfterQuitAfterExecWillCloseUnderlyingConnectionWhenQuitIsStillPending()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\DatabaseInterface')->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
         $client->expects($this->once())->method('quit')->willReturn(new Promise(function () { }));
         $client->expects($this->once())->method('close');
 
@@ -600,7 +600,7 @@ class LazyDatabaseTest extends TestCase
     public function testCloseAfterExecAfterIdleTimeoutWillCloseUnderlyingConnectionWhenQuitIsStillPending()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\DatabaseInterface')->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
         $client->expects($this->once())->method('quit')->willReturn(new Promise(function () { }));
         $client->expects($this->once())->method('close');
 
@@ -657,7 +657,7 @@ class LazyDatabaseTest extends TestCase
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->disableOriginalConstructor()->setMethods(array('exec', 'quit'))->getMock();
         $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve('PONG'));
-        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('quit')->willReturn(\React\Promise\resolve(null));
 
         $deferred = new Deferred();
         $this->factory->expects($this->once())->method('open')->willReturn($deferred->promise());
@@ -677,7 +677,7 @@ class LazyDatabaseTest extends TestCase
         $error = new \RuntimeException();
 
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->disableOriginalConstructor()->setMethods(array('exec'))->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
 
         $deferred = new Deferred();
         $this->factory->expects($this->once())->method('open')->willReturn($deferred->promise());
@@ -692,7 +692,7 @@ class LazyDatabaseTest extends TestCase
     public function testEmitsNoCloseEventWhenUnderlyingDatabaseEmitsClose()
     {
         $client = $this->getMockBuilder('Clue\React\SQLite\Io\ProcessIoDatabase')->disableOriginalConstructor()->setMethods(array('exec'))->getMock();
-        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve());
+        $client->expects($this->once())->method('exec')->willReturn(\React\Promise\resolve(null));
 
         $deferred = new Deferred();
         $this->factory->expects($this->once())->method('open')->willReturn($deferred->promise());
@@ -719,7 +719,7 @@ class LazyDatabaseTest extends TestCase
         $this->db->on('close', $this->expectCallableNever());
 
         $this->db->exec('CREATE');
-        $deferred->resolve();
+        $deferred->resolve(null);
 
         $client->emit('close');
     }
