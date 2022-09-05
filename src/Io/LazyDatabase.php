@@ -116,7 +116,7 @@ class LazyDatabase extends EventEmitter implements DatabaseInterface
     {
         if ($this->promise === null && !$this->closed) {
             $this->close();
-            return \React\Promise\resolve();
+            return \React\Promise\resolve(null);
         }
 
         return $this->db()->then(function (DatabaseInterface $db) {

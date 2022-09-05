@@ -142,7 +142,7 @@ class BlockingDatabase extends EventEmitter implements DatabaseInterface
 
         $this->close();
 
-        return \React\Promise\resolve();
+        return \React\Promise\resolve(null);
     }
 
     public function close()
