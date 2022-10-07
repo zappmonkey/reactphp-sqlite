@@ -433,7 +433,7 @@ class Factory
 
         // if `php` is a symlink to the php binary, use the shorter `php` name
         // this is purely cosmetic feature for the process list
-        if ($binary !== 'php' && \realpath($this->which('php')) === $binary) {
+        if ($binary !== 'php' && \realpath((string) $this->which('php')) === $binary) {
             $binary = 'php';
         }
 
