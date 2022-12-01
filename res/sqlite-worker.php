@@ -4,8 +4,12 @@
 //
 // Communication happens via newline-delimited JSON-RPC messages, see:
 // $ php res/sqlite-worker.php
-// < {"id":0,"method":"open","params":["test.db"]}
-// > {"id":0,"result":true}
+// < {"id":1,"method":"open","params":["examples/users.db",null]}
+// > {"id":1,"result":true}
+// < {"id":2,"method":"query","params":["SELECT 42",[]]}
+// > {"id":2,"result":{"columns":["42"],"rows":[{"42":42}],"insertId":0,"changed":0}}
+// < {"id":3,"method":"query","params":["SELECT ? AS name",["Alice"]]}
+// > {"id":3,"result":{"columns":["name"],"rows":[{"name":"Alice"}],"insertId":0,"changed":0}}
 //
 // Or via socket connection (used for Windows, which does not support non-blocking process pipe I/O)
 // $ nc localhost 8080
@@ -13,6 +17,8 @@
 
 use Clue\React\NDJson\Decoder;
 use Clue\React\NDJson\Encoder;
+use Clue\React\SQLite\Io\BlockingDatabase;
+use Clue\React\SQLite\Result;
 use React\EventLoop\Factory;
 use React\Stream\DuplexResourceStream;
 use React\Stream\ReadableResourceStream;
@@ -43,11 +49,11 @@ if (isset($_SERVER['argv'][1])) {
     });
 
     $in = new Decoder($through);
-    $out = new Encoder($stream);
+    $out = new Encoder($stream, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | (\PHP_VERSION_ID >= 50606 ? \JSON_PRESERVE_ZERO_FRACTION : 0));
 } else {
     // no socket address given, use process I/O pipes
     $in = new Decoder(new ReadableResourceStream(\STDIN, $loop));
-    $out = new Encoder(new WritableResourceStream(\STDOUT, $loop));
+    $out = new Encoder(new WritableResourceStream(\STDOUT, $loop), \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | (\PHP_VERSION_ID >= 50606 ? \JSON_PRESERVE_ZERO_FRACTION : 0));
 }
 
 // report error when input is invalid NDJSON
@@ -74,12 +80,10 @@ $in->on('data', function ($data) use (&$db, $in, $out) {
         return;
     }
 
-    if ($data->method === 'open' && \count($data->params) === 1 && \is_string($data->params[0])) {
-        // open database with one parameter: $filename
+    if ($data->method === 'open' && \count($data->params) === 2 && \is_string($data->params[0]) && ($data->params[1] === null || \is_int($data->params[1]))) {
+        // open database with two parameters: $filename, $flags
         try {
-            $db = new SQLite3(
-                $data->params[0]
-            );
+            $db = new BlockingDatabase($data->params[0], $data->params[1]);
 
             $out->write(array(
                 'id' => $data->id,
@@ -90,123 +94,74 @@ $in->on('data', function ($data) use (&$db, $in, $out) {
                 'id' => $data->id,
                 'error' => array('message' => $e->getMessage())
             ));
-        }
-    } elseif ($data->method === 'open' && \count($data->params) === 2 && \is_string($data->params[0]) && \is_int($data->params[1])) {
-        // open database with two parameters: $filename, $flags
-        try {
-            $db = new SQLite3(
-                $data->params[0],
-                $data->params[1]
-            );
-
-            $out->write(array(
-                'id' => $data->id,
-                'result' => true
-            ));
-        } catch (Exception $e) {
+        } catch (Error $e) {
             $out->write(array(
                 'id' => $data->id,
                 'error' => array('message' => $e->getMessage())
             ));
         }
     } elseif ($data->method === 'exec' && $db !== null && \count($data->params) === 1 && \is_string($data->params[0])) {
-        // execute statement and suppress PHP warnings
-        $ret = @$db->exec($data->params[0]);
-
-        if ($ret === false) {
-            $out->write(array(
-                'id' => $data->id,
-                'error' => array('message' => $db->lastErrorMsg())
-            ));
-        } else {
+        // execute statement: $db->exec($sql)
+        $db->exec($data->params[0])->then(function (Result $result) use ($data, $out) {
             $out->write(array(
                 'id' => $data->id,
                 'result' => array(
-                    'insertId' => $db->lastInsertRowID(),
-                    'changed' => $db->changes()
+                    'insertId' => $result->insertId,
+                    'changed' => $result->changed
                 )
             ));
-        }
+        }, function (Exception $e) use ($data, $out) {
+            $out->write(array(
+                'id' => $data->id,
+                'error' => array('message' => $e->getMessage())
+            ));
+        });
     } elseif ($data->method === 'query' && $db !== null && \count($data->params) === 2 && \is_string($data->params[0]) && (\is_array($data->params[1]) || \is_object($data->params[1]))) {
-        // execute statement and suppress PHP warnings
-        if ($data->params[1] === []) {
-            $result = @$db->query($data->params[0]);
-        } else {
-            $statement = @$db->prepare($data->params[0]);
-            if ($statement === false) {
-                $result = false;
+        // execute statement: $db->query($sql, $params)
+        $params = [];
+        foreach ($data->params[1] as $index => $value) {
+            if (isset($value->float)) {
+                $params[$index] = (float)$value->float;
+            } elseif (isset($value->base64)) {
+                // base64-decode string parameters as BLOB
+                $params[$index] = \base64_decode($value->base64);
             } else {
-                foreach ($data->params[1] as $index => $value) {
-                    if ($value === null) {
-                        $type = \SQLITE3_NULL;
-                    } elseif ($value === true || $value === false) {
-                        // explicitly cast bool to int because SQLite does not have a native boolean
-                        $type = \SQLITE3_INTEGER;
-                        $value = (int)$value;
-                    } elseif (\is_int($value)) {
-                        $type = \SQLITE3_INTEGER;
-                    } elseif (isset($value->float)) {
-                        $type = \SQLITE3_FLOAT;
-                        $value = (float)$value->float;
-                    } elseif (isset($value->base64)) {
-                        // base64-decode string parameters as BLOB
-                        $type = \SQLITE3_BLOB;
-                        $value = \base64_decode($value->base64);
-                    } else {
-                        $type = \SQLITE3_TEXT;
-                    }
-
-                    $statement->bindValue(
-                        \is_int($index) ? $index + 1 : $index,
-                        $value,
-                        $type
-                    );
-                }
-                $result = @$statement->execute();
+                $params[$index] = $value;
             }
         }
 
-        if ($result === false) {
-            $out->write(array(
-                'id' => $data->id,
-                'error' => array('message' => $db->lastErrorMsg())
-            ));
-        } else {
-            if ($result->numColumns() !== 0) {
-                // Fetch all rows only if this result set has any columns.
-                // INSERT/UPDATE/DELETE etc. do not return any columns, trying
-                // to fetch the results here will issue the same query again.
-                $rows = $columns = [];
-                for ($i = 0, $n = $result->numColumns(); $i < $n; ++$i) {
-                    $columns[] = $result->columnName($i);
-                }
-
-                while (($row = $result->fetchArray(\SQLITE3_ASSOC)) !== false) {
+        $db->query($data->params[0], $params)->then(function (Result $result) use ($data, $out) {
+            $rows = null;
+            if ($result->rows !== null) {
+                $rows = [];
+                foreach ($result->rows as $row) {
                     // base64-encode any string that is not valid UTF-8 without control characters (BLOB)
                     foreach ($row as &$value) {
                         if (\is_string($value) && \preg_match('/[\x00-\x08\x11\x12\x14-\x1f\x7f]/u', $value) !== 0) {
                             $value = ['base64' => \base64_encode($value)];
-                        } elseif (\is_float($value)) {
+                        } elseif (\is_float($value) && \PHP_VERSION_ID < 50606) {
                             $value = ['float' => $value];
                         }
                     }
                     $rows[] = $row;
                 }
-            } else {
-                $rows = $columns = null;
             }
-            $result->finalize();
 
             $out->write(array(
                 'id' => $data->id,
                 'result' => array(
-                    'columns' => $columns,
+                    'columns' => $result->columns,
                     'rows' => $rows,
-                    'insertId' => $db->lastInsertRowID(),
-                    'changed' => $db->changes()
+                    'insertId' => $result->insertId,
+                    'changed' => $result->changed
                 )
             ));
-        }
+        }, function (Exception $e) use ($data, $out) {
+            $out->write(array(
+                'id' => $data->id,
+                'error' => array('message' => $e->getMessage())
+            ));
+        });
     } elseif ($data->method === 'close' && $db !== null && \count($data->params) === 0) {
         // close database and remove reference
         $db->close();

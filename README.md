@@ -11,7 +11,7 @@ It offers a common SQL interface to process queries to work with its relational 
 in memory or persist to a simple, portable database file.
 Its lightweight design makes it an ideal candidate for an embedded database in
 portable (CLI) applications, test environments and much more.
-This library provides you a simple API to work with your SQLite database from within PHP.
+This library provides a simple API to work with your SQLite database from within PHP.
 Because working with SQLite and the underlying filesystem is inherently blocking,
 this project is built as a lightweight non-blocking process wrapper around it,
 so you can query your data without blocking your main application.
@@ -25,7 +25,7 @@ so you can query your data without blocking your main application.
   and does not get in your way.
   Future or custom commands and events require no changes to be supported.
 * **Good test coverage** -
-  Comes with an automated tests suite and is regularly tested against actual SQLite databases in the wild.
+  Comes with an automated test suite and is regularly tested against actual SQLite databases in the wild.
 
 **Table of contents**
 
@@ -60,26 +60,33 @@ Let's take these projects to the next level together! 🚀
 ## Quickstart example
 
 The following example code demonstrates how this library can be used to open an
-existing SQLite database file (or automatically create it on first run) and then
-`INSERT` a new record to the database:
+existing SQLite database file (or automatically create it on the first run) and
+then `INSERT` a new record to the database:
 
 ```php
-$factory = new Clue\React\SQLite\Factory();
+<?php
 
-$db = $factory->openLazy('users.db');
-$db->exec('CREATE TABLE IF NOT EXISTS foo (id INTEGER PRIMARY KEY AUTOINCREMENT, bar STRING)');
+require __DIR__ . '/vendor/autoload.php';
+
+$factory = new Clue\React\SQLite\Factory();
+$db = $factory->openLazy(__DIR__ . '/users.db');
+
+$db->exec('CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY AUTOINCREMENT, name STRING)');
 
 $name = 'Alice';
-$db->query('INSERT INTO foo (bar) VALUES (?)', [$name])->then(
+$db->query('INSERT INTO user (name) VALUES (?)', [$name])->then(
     function (Clue\React\SQLite\Result $result) use ($name) {
         echo 'New ID for ' . $name . ': ' . $result->insertId . PHP_EOL;
+    },
+    function (Exception $e) {
+        echo 'Error: ' . $e->getMessage() . PHP_EOL;
     }
 );
 
 $db->quit();
 ```
 
-See also the [examples](examples).
+See also the [examples](examples/).
 
 ## Usage
 
@@ -97,6 +104,30 @@ here in order to use the [default loop](https://github.com/reactphp/event-loop#l
 This value SHOULD NOT be given unless you're sure you want to explicitly use a
 given event loop instance.
 
+This class takes an optional `?string $binary` parameter that can be used to
+pass a custom PHP binary to use when spawning a child process. You can use a
+`null` value here in order to automatically detect the current PHP binary. You
+may want to pass a custom executable path if this automatic detection fails or
+if you explicitly want to run the child process with a different PHP version or
+environment than your parent process.
+
+```php
+// advanced usage: pass custom PHP binary to use when spawning child process
+$factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
+```
+
+Or you may use this parameter to pass an empty PHP binary path which will
+cause this project to not spawn a PHP child process for any database
+interactions at all. In this case, using SQLite will block the main
+process, but continues to provide the exact same async API. This can be
+useful if concurrent execution is not needed, especially when running
+behind a traditional web server (non-CLI SAPI).
+
+```php
+// advanced usage: empty binary path runs blocking SQLite in same process
+$factory = new Clue\React\SQLite\Factory(null, '');
+```
+
 #### open()
 
 The `open(string $filename, int $flags = null): PromiseInterface<DatabaseInterface>` method can be used to
@@ -107,7 +138,7 @@ success or will reject with an `Exception` on error. The SQLite extension
 is inherently blocking, so this method will spawn an SQLite worker process
 to run all SQLite commands and queries in a separate process without
 blocking the main process. On Windows, it uses a temporary network socket
-for this communication, on all other platforms it communicates over
+for this communication, on all other platforms, it communicates over
 standard process I/O pipes.
 
 ```php
@@ -164,11 +195,11 @@ the underlying database is ready. Additionally, it will only keep this
 underlying database in an "idle" state for 60s by default and will
 automatically end the underlying database when it is no longer needed.
 
-From a consumer side this means that you can start sending queries to the
+From a consumer side, this means that you can start sending queries to the
 database right away while the underlying database process may still be
 outstanding. Because creating this underlying process may take some
-time, it will enqueue all oustanding commands and will ensure that all
-commands will be executed in correct order once the database is ready.
+time, it will enqueue all outstanding commands and will ensure that all
+commands will be executed in the correct order once the database is ready.
 In other words, this "virtual" database behaves just like a "real"
 database as described in the `DatabaseInterface` and frees you from
 having to deal with its async resolution.
@@ -190,7 +221,7 @@ will not have to wait for an actual underlying connection.
 
 Depending on your particular use case, you may prefer this method or the
 underlying `open()` method which resolves with a promise. For many
-simple use cases it may be easier to create a lazy connection.
+simple use cases, it may be easier to create a lazy connection.
 
 The `$filename` parameter is the path to the SQLite database file or
 `:memory:` to create a temporary in-memory database. As of PHP 7.0.10, an
@@ -213,7 +244,7 @@ $db = $factory->openLazy('users.db', SQLITE3_OPEN_READONLY);
 By default, this method will keep "idle" connection open for 60s and will
 then end the underlying connection. The next request after an "idle"
 connection ended will automatically create a new underlying connection.
-This ensure you always get a "fresh" connection and as such should not be
+This ensures you always get a "fresh" connection and as such should not be
 confused with a "keepalive" or "heartbeat" mechanism, as this will not
 actively try to probe the connection. You can explicitly pass a custom
 idle timeout value in seconds (or use a negative number to not apply a
@@ -226,7 +257,7 @@ $db = $factory->openLazy('users.db', null, ['idle' => 0.1]);
 ### DatabaseInterface
 
 The `DatabaseInterface` represents a connection that is responsible for
-comunicating with your SQLite database wrapper, managing the connection state
+communicating with your SQLite database wrapper, managing the connection state
 and sending your database queries.
 
 #### exec()
@@ -355,7 +386,7 @@ The `close(): void` method can be used to
 force-close the connection.
 
 Unlike the `quit()` method, this method will immediately force-close the
-connection and reject all oustanding commands.
+connection and reject all outstanding commands.
 
 ```php
 $db->close();
@@ -400,21 +431,21 @@ See also the [`close()`](#close) method.
 
 ## Install
 
-The recommended way to install this library is [through Composer](https://getcomposer.org).
+The recommended way to install this library is [through Composer](https://getcomposer.org/).
 [New to Composer?](https://getcomposer.org/doc/00-intro.md)
 
 This project follows [SemVer](https://semver.org/).
 This will install the latest supported version:
 
 ```bash
-$ composer require clue/reactphp-sqlite:^1.1
+$ composer require clue/reactphp-sqlite:^1.5
 ```
 
 See also the [CHANGELOG](CHANGELOG.md) for details about version upgrades.
 
 This project aims to run on any platform and thus only requires `ext-sqlite3` and
 supports running on legacy PHP 5.4 through current PHP 8+.
-It's *highly recommended to use PHP 7+* for this project.
+It's *highly recommended to use the latest supported PHP version* for this project.
 
 This project is implemented as a lightweight process wrapper around the `ext-sqlite3`
 PHP extension, so you'll have to make sure that you have a suitable version
@@ -427,7 +458,7 @@ $ sudo apt install php-sqlite3
 ## Tests
 
 To run the test suite, you first need to clone this repo and then install all
-dependencies [through Composer](https://getcomposer.org):
+dependencies [through Composer](https://getcomposer.org/):
 
 ```bash
 $ composer install
@@ -436,7 +467,7 @@ $ composer install
 To run the test suite, go to the project root and run:
 
 ```bash
-$ php vendor/bin/phpunit
+$ vendor/bin/phpunit
 ```
 
 ## License

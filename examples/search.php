@@ -1,21 +1,20 @@
 <?php
 
-use Clue\React\SQLite\DatabaseInterface;
-use Clue\React\SQLite\Factory;
-use Clue\React\SQLite\Result;
-
 require __DIR__ . '/../vendor/autoload.php';
 
-$factory = new Factory();
+$factory = new Clue\React\SQLite\Factory();
+$db = $factory->openLazy(__DIR__ . '/users.db');
 
-$search = isset($argv[1]) ? $argv[1] : 'foo';
-$db = $factory->openLazy('test.db');
+$search = isset($argv[1]) ? $argv[1] : '';
 
-$db->query('SELECT * FROM foo WHERE bar LIKE ?', ['%' . $search . '%'])->then(function (Result $result) {
+$db->query('SELECT * FROM user WHERE name LIKE ?', ['%' . $search . '%'])->then(function (Clue\React\SQLite\Result $result) {
     echo 'Found ' . count($result->rows) . ' rows: ' . PHP_EOL;
     echo implode("\t", $result->columns) . PHP_EOL;
     foreach ($result->rows as $row) {
         echo implode("\t", $row) . PHP_EOL;
     }
-}, 'printf');
+}, function (Exception $e) {
+    echo 'Error: ' . $e->getMessage() . PHP_EOL;
+});
+
 $db->quit();

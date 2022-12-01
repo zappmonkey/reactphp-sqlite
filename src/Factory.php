@@ -2,6 +2,7 @@
 
 namespace Clue\React\SQLite;
 
+use Clue\React\SQLite\Io\BlockingDatabase;
 use Clue\React\SQLite\Io\LazyDatabase;
 use Clue\React\SQLite\Io\ProcessIoDatabase;
 use React\ChildProcess\Process;
@@ -15,7 +16,10 @@ class Factory
     /** @var LoopInterface */
     private $loop;
 
-    private $bin = PHP_BINARY;
+    /** @var string */
+    private $bin;
+
+    /** @var bool */
     private $useSocket;
 
     /**
@@ -31,26 +35,40 @@ class Factory
      * This value SHOULD NOT be given unless you're sure you want to explicitly use a
      * given event loop instance.
      *
+     * This class takes an optional `?string $binary` parameter that can be used to
+     * pass a custom PHP binary to use when spawning a child process. You can use a
+     * `null` value here in order to automatically detect the current PHP binary. You
+     * may want to pass a custom executable path if this automatic detection fails or
+     * if you explicitly want to run the child process with a different PHP version or
+     * environment than your parent process.
+     *
+     * ```php
+     * // advanced usage: pass custom PHP binary to use when spawning child process
+     * $factory = new Clue\React\SQLite\Factory(null, '/usr/bin/php6.0');
+     * ```
+     *
+     * Or you may use this parameter to pass an empty PHP binary path which will
+     * cause this project to not spawn a PHP child process for any database
+     * interactions at all. In this case, using SQLite will block the main
+     * process, but continues to provide the exact same async API. This can be
+     * useful if concurrent execution is not needed, especially when running
+     * behind a traditional web server (non-CLI SAPI).
+     *
+     * ```php
+     * // advanced usage: empty binary path runs blocking SQLite in same process
+     * $factory = new Clue\React\SQLite\Factory(null, '');
+     * ```
+     *
      * @param ?LoopInterface $loop
+     * @param ?string $binary
      */
-    public function __construct(LoopInterface $loop = null)
+    public function __construct(LoopInterface $loop = null, $binary = null)
     {
         $this->loop = $loop ?: Loop::get();
+        $this->bin = $binary === null ? $this->php() : $binary;
 
         // use socket I/O for Windows only, use faster process pipes everywhere else
-        $this->useSocket = DIRECTORY_SEPARATOR === '\\';
-
-        // if this is the php-cgi binary, check if we can execute the php binary instead
-        $candidate = \str_replace('-cgi', '', $this->bin);
-        if ($candidate !== $this->bin && \is_executable($candidate)) {
-            $this->bin = $candidate; // @codeCoverageIgnore
-        }
-
-        // if `php` is a symlink to the php binary, use the shorter `php` name
-        // this is purely cosmetic feature for the process list
-        if (\realpath($this->which('php')) === $this->bin) {
-            $this->bin = 'php'; // @codeCoverageIgnore
-        }
+        $this->useSocket = \DIRECTORY_SEPARATOR === '\\';
     }
 
     /**
@@ -61,7 +79,7 @@ class Factory
      * is inherently blocking, so this method will spawn an SQLite worker process
      * to run all SQLite commands and queries in a separate process without
      * blocking the main process. On Windows, it uses a temporary network socket
-     * for this communication, on all other platforms it communicates over
+     * for this communication, on all other platforms, it communicates over
      * standard process I/O pipes.
      *
      * ```php
@@ -104,6 +122,17 @@ class Factory
     public function open($filename, $flags = null)
     {
         $filename = $this->resolve($filename);
+
+        if ($this->bin === '') {
+            try {
+                return \React\Promise\resolve(new BlockingDatabase($filename, $flags));
+            } catch (\Exception $e) {
+                return \React\Promise\reject(new \RuntimeException($e->getMessage()) );
+            } catch (\Error $e) {
+                return \React\Promise\reject(new \RuntimeException($e->getMessage()));
+            }
+        }
+
         return $this->useSocket ? $this->openSocketIo($filename, $flags) : $this->openProcessIo($filename, $flags);
     }
 
@@ -152,7 +181,7 @@ class Factory
      *
      * Depending on your particular use case, you may prefer this method or the
      * underlying `open()` method which resolves with a promise. For many
-     * simple use cases it may be easier to create a lazy connection.
+     * simple use cases, it may be easier to create a lazy connection.
      *
      * The `$filename` parameter is the path to the SQLite database file or
      * `:memory:` to create a temporary in-memory database. As of PHP 7.0.10, an
@@ -197,7 +226,16 @@ class Factory
 
     private function openProcessIo($filename, $flags = null)
     {
-        $command = 'exec ' . \escapeshellarg($this->bin) . ' sqlite-worker.php';
+        $cwd = null;
+        $worker = \dirname(__DIR__) . '/res/sqlite-worker.php';
+
+        if (\class_exists('Phar', false) && ($phar = \Phar::running(false)) !== '') {
+            $worker = '-r' . 'Phar::loadPhar(' . var_export($phar, true) . ');require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
+        } else {
+            $cwd = __DIR__ . '/../res';
+            $worker = \basename($worker);
+        }
+        $command = 'exec ' . \escapeshellarg($this->bin) . ' ' . escapeshellarg($worker);
 
         // Try to get list of all open FDs (Linux/Mac and others)
         $fds = @\scandir('/dev/fd');
@@ -225,11 +263,12 @@ class Factory
             \defined('STDERR') ? \STDERR : \fopen('php://stderr', 'w')
         );
 
-        // do not inherit open FDs by explicitly overwriting existing FDs with dummy files
+        // do not inherit open FDs by explicitly overwriting existing FDs with dummy files.
+        // Accessing /dev/null with null spec requires PHP 7.4+, older PHP versions may be restricted due to open_basedir, so let's reuse STDERR here.
         // additionally, close all dummy files in the child process again
         foreach ($fds as $fd) {
             if ($fd > 2) {
-                $pipes[$fd] = array('file', '/dev/null', 'r');
+                $pipes[$fd] = \PHP_VERSION_ID >= 70400 ? ['null'] : $pipes[2];
                 $command .= ' ' . $fd . '>&-';
             }
         }
@@ -239,14 +278,11 @@ class Factory
             $command = 'exec bash -c ' . \escapeshellarg($command);
         }
 
-        $process = new Process($command, __DIR__ . '/../res', null, $pipes);
+        $process = new Process($command, $cwd, null, $pipes);
         $process->start($this->loop);
 
         $db = new ProcessIoDatabase($process);
-        $args = array($filename);
-        if ($flags !== null) {
-            $args[] = $flags;
-        }
+        $args = array($filename, $flags);
 
         return $db->send('open', $args)->then(function () use ($db) {
             return $db;
@@ -258,7 +294,16 @@ class Factory
 
     private function openSocketIo($filename, $flags = null)
     {
-        $command = \escapeshellarg($this->bin) . ' sqlite-worker.php';
+        $cwd = null;
+        $worker = \dirname(__DIR__) . '/res/sqlite-worker.php';
+
+        if (\class_exists('Phar', false) && ($phar = \Phar::running(false)) !== '') {
+            $worker = '-r' . 'Phar::loadPhar(' . var_export($phar, true) . ');require(' . \var_export($worker, true) . ');'; // @codeCoverageIgnore
+        } else {
+            $cwd = __DIR__ . '/../res';
+            $worker = \basename($worker);
+        }
+        $command = \escapeshellarg($this->bin) . ' ' . escapeshellarg($worker);
 
         // launch process without default STDIO pipes, but inherit STDERR
         $null = \DIRECTORY_SEPARATOR === '\\' ? 'nul' : '/dev/null';
@@ -280,7 +325,7 @@ class Factory
         stream_set_blocking($server, false);
         $command .= ' ' . stream_socket_get_name($server, false);
 
-        $process = new Process($command, __DIR__ . '/../res', null, $pipes);
+        $process = new Process($command, $cwd, null, $pipes);
         $process->start($this->loop);
 
         $deferred = new Deferred(function () use ($process, $server) {
@@ -298,6 +343,16 @@ class Factory
             $process->terminate();
 
             $deferred->reject(new \RuntimeException('No connection detected'));
+        });
+
+        $process->on('exit', function () use ($deferred, $server, $timeout) {
+            $this->loop->cancelTimer($timeout);
+            if (is_resource($server)) {
+                $this->loop->removeReadStream($server);
+                fclose($server);
+            }
+
+            $deferred->reject(new \RuntimeException('Database process died while setting up connection'));
         });
 
         $this->loop->addReadStream($server, function () use ($server, $timeout, $filename, $flags, $deferred, $process) {
@@ -318,10 +373,7 @@ class Factory
             });
 
             $db = new ProcessIoDatabase($process);
-            $args = array($filename);
-            if ($flags !== null) {
-                $args[] = $flags;
-            }
+            $args = array($filename, $flags);
 
             $db->send('open', $args)->then(function () use ($deferred, $db) {
                 $deferred->resolve($db);
@@ -342,7 +394,7 @@ class Factory
     private function which($bin)
     {
         foreach (\explode(\PATH_SEPARATOR, \getenv('PATH')) as $path) {
-            if (\is_executable($path . \DIRECTORY_SEPARATOR . $bin)) {
+            if (@\is_executable($path . \DIRECTORY_SEPARATOR . $bin)) {
                 return $path . \DIRECTORY_SEPARATOR . $bin;
             }
         }
@@ -359,5 +411,32 @@ class Factory
             $filename = \getcwd() . \DIRECTORY_SEPARATOR . $filename;
         }
         return $filename;
+    }
+
+    /**
+     * @return string
+     * @codeCoverageIgnore Covered by `/tests/FunctionalExampleTest.php` instead.
+     */
+    private function php()
+    {
+        $binary = 'php';
+        if (\PHP_SAPI === 'cli' || \PHP_SAPI === 'cli-server') {
+            // use same PHP_BINARY in CLI mode, but do not use same binary for CGI/FPM
+            $binary = \PHP_BINARY;
+        } else {
+            // if this is the php-cgi binary, check if we can execute the php binary instead
+            $candidate = \str_replace('-cgi', '', \PHP_BINARY);
+            if ($candidate !== \PHP_BINARY && @\is_executable($candidate)) {
+                $binary = $candidate;
+            }
+        }
+
+        // if `php` is a symlink to the php binary, use the shorter `php` name
+        // this is purely cosmetic feature for the process list
+        if ($binary !== 'php' && \realpath((string) $this->which('php')) === $binary) {
+            $binary = 'php';
+        }
+
+        return $binary;
     }
 }
